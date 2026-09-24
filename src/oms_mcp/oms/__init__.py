@@ -1,0 +1,1 @@
+"""OMS HTTP adapter."""
