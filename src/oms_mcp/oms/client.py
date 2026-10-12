@@ -119,7 +119,7 @@ class OMSClient:
         raise AuthenticationError("OMS authentication failed")
 
     async def get_attendance_stats(self) -> AttendanceStats:
-        return normalize_attendance(await self.request("/api/v1/attendance/attendance_hierarchy"))
+        return normalize_attendance(await self.request("/api/v1/attendance/attendance_stats"))
 
     async def get_leaves(self, page: int = 1, size: int = 10) -> LeaveList:
         if isinstance(page, bool) or not isinstance(page, int) or page < 1:

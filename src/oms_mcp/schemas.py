@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class AttendanceStats(BaseModel):
+    present: int | float | None = None
+    absent: int | float | None = None
     name: str | None = None
     designation_name: str | None = None
     attendance_list: list | None = None

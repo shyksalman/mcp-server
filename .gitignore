@@ -3,3 +3,9 @@
 __pycache__/
 .pytest_cache/
 *.pyc
+.data/
+node_modules/
+.env
+.env.local
+dist/
+build/

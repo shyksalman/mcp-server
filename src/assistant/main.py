@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from assistant.chat import ChatSession
-from assistant.mcp_client import OMSMCPClient
+from assistant.mcp_client import MultiMCPClient
 from assistant.ollama_client import OllamaClient
 from oms_mcp.config import load_settings
 
@@ -10,9 +10,9 @@ from oms_mcp.config import load_settings
 async def run() -> None:
     settings = load_settings()
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
-    async with OMSMCPClient() as mcp:
+    async with MultiMCPClient() as mcp:
         chat = ChatSession(OllamaClient(settings.ollama_base_url, settings.ollama_model), mcp, settings.max_tool_iterations)
-        print(f"Enigmatix OMS Assistant\nModel: {settings.ollama_model}\nType /tools, /clear, or /exit.")
+        print(f"Employee AI Copilot\nModel: {settings.ollama_model}\nType /tools, /clear, or /exit.")
         while True:
             try:
                 message = await asyncio.to_thread(input, "\nYou: ")

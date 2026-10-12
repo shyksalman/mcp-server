@@ -2,8 +2,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from assistant.chat import ChatSession
+from assistant.chat import ChatSession, direct_tool_answer, normalize_tool_args
 from assistant.tool_adapter import result_for_model, to_ollama_tool
+from backend.agent.memory import ConversationMemory
 from oms_mcp.server import mcp
 
 
@@ -21,6 +22,27 @@ def test_schema_conversion_and_registration() -> None:
 
 def test_result_conversion() -> None:
     assert '"remaining": 4' in result_for_model(SimpleNamespace(structuredContent={"remaining": 4}))
+
+
+def test_calendar_today_args_are_normalized() -> None:
+    args = normalize_tool_args("list_my_meetings", {"start_date": "2024-01-01"}, "What meetings do I have today?")
+    assert args["start_date"] == args["end_date"]
+    assert args["limit"] == 20
+
+
+def test_direct_meeting_answer_from_tool_result() -> None:
+    answer = direct_tool_answer(
+        "What meetings do I have today?",
+        [
+            {
+                "name": "list_my_meetings",
+                "args": {},
+                "content": '{"meetings":[{"title":"Daily Standup","start":"2026-09-25T10:00:00+05:00","end":"2026-09-25T10:30:00+05:00"}]}',
+            }
+        ],
+    )
+    assert "Daily Standup" in answer
+    assert "10:00 - 10:30" in answer
 
 
 class FakeOllama:
@@ -77,3 +99,38 @@ async def test_tool_error_and_iteration_limit() -> None:
     assert "secret detail" not in chat.messages[-2]["content"]
     loop = ChatSession(FakeOllama([response(calls=[call()])]), FakeMCP(), max_iterations=1)
     assert "tool-call limit" in await loop.ask("My leaves?")
+
+
+@pytest.mark.asyncio
+async def test_conversation_memory_persists_isolates_and_clears(tmp_path) -> None:
+    database = str(tmp_path / "chat-memory.db")
+    first_model = FakeOllama([response("You said the project is Atlas.")])
+    memory = ConversationMemory(first_model, FakeMCP(), database)
+
+    conversation_id, answer = await memory.ask("Remember that my project is Atlas")
+    assert answer == "You said the project is Atlas."
+    assert await memory.history(conversation_id) == [
+        {"role": "user", "content": "Remember that my project is Atlas"},
+        {"role": "assistant", "content": "You said the project is Atlas."},
+    ]
+    memory.close()
+
+    restored_model = FakeOllama([response("Your project is Atlas."), response("I have no project context.")])
+    restored = ConversationMemory(restored_model, FakeMCP(), database)
+    same_id, answer = await restored.ask("What is my project?", conversation_id)
+    assert same_id == conversation_id
+    assert answer == "Your project is Atlas."
+    sent_messages = restored_model.seen[0][0]
+    assert [item["content"] for item in sent_messages if item["role"] == "user"] == [
+        "Remember that my project is Atlas",
+        "What is my project?",
+    ]
+
+    other_id, _ = await restored.ask("What is my project?")
+    assert other_id != conversation_id
+    other_messages = restored_model.seen[1][0]
+    assert all(item.get("content") != "Remember that my project is Atlas" for item in other_messages)
+
+    await restored.clear(conversation_id)
+    assert await restored.history(conversation_id) == []
+    restored.close()

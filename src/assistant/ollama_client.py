@@ -11,7 +11,14 @@ class OllamaClient:
 
     async def chat(self, messages: list[Any], tools: list[dict[str, Any]]) -> Any:
         try:
-            return await self.client.chat(model=self.model, messages=messages, tools=tools)
+            return await self.client.chat(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                think=False,
+                keep_alive="10m",
+                options={"num_predict": 512},
+            )
         except (httpx.ConnectError, httpx.TimeoutException) as exc:
             raise RuntimeError("Ollama is unavailable. Start it with `ollama serve` and check OLLAMA_BASE_URL.") from exc
         except ResponseError as exc:

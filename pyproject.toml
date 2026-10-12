@@ -3,7 +3,16 @@ name = "enigmatix-oms-assistant"
 version = "0.1.0"
 description = "Local Ollama assistant for personal Enigmatix OMS data via MCP"
 requires-python = ">=3.11"
-dependencies = ["mcp>=1.10,<2", "ollama>=0.5,<1", "httpx>=0.27,<1", "pydantic>=2,<3", "pydantic-settings>=2,<3"]
+dependencies = [
+    "mcp>=1.10,<2",
+    "ollama>=0.5,<1",
+    "httpx>=0.27,<1",
+    "pydantic>=2,<3",
+    "pydantic-settings>=2,<3",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "slack-sdk>=3.31,<4",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "pytest-asyncio>=0.24,<2"]
@@ -13,7 +22,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/oms_mcp", "src/assistant"]
+packages = ["src/oms_mcp", "src/calendar_mcp", "src/clickup_mcp", "src/slack_mcp", "src/assistant", "src/backend"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
